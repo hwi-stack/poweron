@@ -1,5 +1,14 @@
 import { CommitteeInfo, ImpactMetric, Activity, Moment, Voice, HighlightStory, SiteSettings } from '../types';
 
+// Direct ES module imports so Vite bundles and hashes valid URLs
+import smartworkKoreanImg from '../assets/images/smartwork_korean_team_1794460532171.jpg';
+import esgKoreanImg from '../assets/images/esg_korean_campaign_1794460532534.jpg';
+import easyGuideKoreanImg from '../assets/images/easy_guide_korean_1794460532508.jpg';
+import heroBgImg from '../assets/images/hero_abstract_navy_1794458263180.jpg';
+import smartworkVisualImg from '../assets/images/smartwork_visual_1794458264575.jpg';
+import esgCampaignVisualImg from '../assets/images/esg_campaign_visual_1794458264673.jpg';
+import easyGuideCoverImg from '../assets/images/easy_guide_cover_1794458263505.jpg';
+
 export const COMMITTEES: Record<string, CommitteeInfo> = {
   growth: {
     id: 'growth',
@@ -200,8 +209,8 @@ export const INITIAL_HIGHLIGHTS: HighlightStory[] = [
     background: '부서 간 업무 프로세스 공유 부족과 수기 서식 취합으로 인한 반복 업무가 직원들의 피로도를 높이고 있었습니다.',
     action: '2025년 부서 간 교류 프로그램을 시작으로 2026년에는 직원들이 자발적으로 모여 스마트워크 스터디를 결성하고, 현장에 꼭 필요한 맞춤형 업무 웹앱을 자체 개발하였습니다.',
     result: '부서 간 긍정적 인식 변화 87.5%를 이끌어냈으며, 개발된 웹앱을 통해 복잡한 반복 업무를 간소화하여 서비스 본연에 집중하는 스마트 업무 기반을 마련했습니다.',
-    imageUrl: '/src/assets/images/smartwork_visual_1794458264575.jpg',
-    imageCaption: '스마트워크 연구 및 현장 적용 회의 모습 (예시 이미지)'
+    imageUrl: smartworkKoreanImg,
+    imageCaption: '스마트워크 연구 및 현장 웹앱 적용 회의 모습'
   },
   {
     id: 'hl-2',
@@ -211,8 +220,8 @@ export const INITIAL_HIGHLIGHTS: HighlightStory[] = [
     background: 'ESG 경영이 공공복지 현장에서는 거창하거나 추상적인 구호로 느껴져 직원들이 실천에 거리감을 느꼈습니다.',
     action: '잔반 줄이기와 개인 텀블러 사용처럼 즉시 가능한 일상 친환경 활동부터 시작했습니다. 2026년에는 이를 사회(S) 영역인 인사·감사·칭찬 캠페인으로 확장하여 이용인과 직원이 함께하는 상호존중 문화를 만들었습니다.',
     result: '텀블러 사용 횟수 +80.3% 증가, 잔반량 -70% 감소라는 뚜렷한 수치적 결실과 함께 서로를 배려하는 따뜻한 복지관 문화를 형성했습니다.',
-    imageUrl: '/src/assets/images/esg_campaign_visual_1794458264673.jpg',
-    imageCaption: '친환경 텀블러 및 상호존중 캠페인 현장 (예시 이미지)'
+    imageUrl: esgKoreanImg,
+    imageCaption: '친환경 텀블러 사용 및 상호존중 실천 캠페인'
   },
   {
     id: 'hl-3',
@@ -222,8 +231,8 @@ export const INITIAL_HIGHLIGHTS: HighlightStory[] = [
     background: '복지관 내 각종 안내문과 동선 표기가 문자 중심이어서 발달장애인 이용인이 스스로 시설을 찾고 서비스를 이용하기에 어려움이 있었습니다.',
     action: '도서 스터디로 전문 지식을 쌓은 위원회가 쉬운 단어와 픽토그램을 조합한 「쉬운 이용안내서」 책자와 e-book을 제작하였고, 이어서 복지관 프로그램실마다 직관적인 쉬운 공간안내서를 제작·설치했습니다.',
     result: '발달장애인 이용인의 자립적 복지관 이용 편의가 증대되었으며, 종이책과 디지털 e-book의 옴니채널 제공으로 정보접근성이 획기적으로 개선되었습니다.',
-    imageUrl: '/src/assets/images/easy_guide_cover_1794458263505.jpg',
-    imageCaption: '직접 제작·발간한 쉬운 이용안내서 책자 (예시 이미지)'
+    imageUrl: easyGuideKoreanImg,
+    imageCaption: '안내데스크 쉬운 이용안내서 소개 및 정보제공 모습'
   }
 ];
 
@@ -236,7 +245,7 @@ export const INITIAL_MOMENTS: Moment[] = [
     description: '조직성장, ESG, 발달장애인지원 3대 분과가 함께 일군 혁신 과정과 3년간의 성과를 집약한 공식 다큐멘터리 영상입니다.',
     mediaType: 'video',
     url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-    thumbnail: '/src/assets/images/smartwork_visual_1794458264575.jpg',
+    thumbnail: smartworkKoreanImg,
     status: 'published',
     order: 0
   },
@@ -248,7 +257,7 @@ export const INITIAL_MOMENTS: Moment[] = [
     description: '위원회 활동에 직접 참여한 직원들의 생생한 소감과 이용인과 함께 만든 상호존중 문화 인터뷰 영상입니다.',
     mediaType: 'video',
     url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-    thumbnail: '/src/assets/images/esg_campaign_visual_1794458264673.jpg',
+    thumbnail: esgKoreanImg,
     status: 'published',
     order: 1
   },
@@ -259,7 +268,7 @@ export const INITIAL_MOMENTS: Moment[] = [
     committee: 'growth',
     description: '3대 직원위원회 출범 및 3개년 로드맵 설정을 위한 위원장 및 위원 합동 워크숍 현장',
     mediaType: 'photo',
-    url: '/src/assets/images/smartwork_visual_1794458264575.jpg',
+    url: smartworkKoreanImg,
     status: 'published',
     order: 2
   },
@@ -270,7 +279,7 @@ export const INITIAL_MOMENTS: Moment[] = [
     committee: 'esg',
     description: '전 직원이 일회용 컵 대신 개인 텀블러를 지참하고 구내 카페를 이용하는 친환경 실천의 날',
     mediaType: 'photo',
-    url: '/src/assets/images/esg_campaign_visual_1794458264673.jpg',
+    url: esgKoreanImg,
     status: 'published',
     order: 2
   },
@@ -281,7 +290,7 @@ export const INITIAL_MOMENTS: Moment[] = [
     committee: 'developmental',
     description: '이용인과 함께 읽으며 단어와 픽토그램의 난이도를 직접 검증한 감수 회의',
     mediaType: 'photo',
-    url: '/src/assets/images/easy_guide_cover_1794458263505.jpg',
+    url: easyGuideKoreanImg,
     status: 'published',
     order: 3
   },
@@ -292,7 +301,7 @@ export const INITIAL_MOMENTS: Moment[] = [
     committee: 'growth',
     description: '직원들이 직접 기획하고 개발한 업무 보조 웹앱의 첫 시연 및 피드백 청취 시간',
     mediaType: 'photo',
-    url: '/src/assets/images/smartwork_visual_1794458264575.jpg',
+    url: smartworkVisualImg,
     status: 'published',
     order: 4
   },
@@ -303,7 +312,7 @@ export const INITIAL_MOMENTS: Moment[] = [
     committee: 'esg',
     description: '복지관 로비에 마련된 칭찬 카드 게시판과 서로에게 따뜻한 응원을 건네는 임직원들',
     mediaType: 'photo',
-    url: '/src/assets/images/hero_abstract_navy_1794458263180.jpg',
+    url: esgCampaignVisualImg,
     status: 'published',
     order: 5
   },
@@ -314,7 +323,7 @@ export const INITIAL_MOMENTS: Moment[] = [
     committee: 'developmental',
     description: '발달장애인 눈높이에 맞춘 픽토그램 안내판이 실제 시설 입구에 부착된 모습',
     mediaType: 'photo',
-    url: '/src/assets/images/easy_guide_cover_1794458263505.jpg',
+    url: easyGuideCoverImg,
     status: 'published',
     order: 6
   }
@@ -356,5 +365,5 @@ export const INITIAL_SITE_SETTINGS: SiteSettings = {
   heroSubTitle: '변화의 스위치를 켜다.',
   heroDescription: '직원이 제안하고 함께 바꾸는 참여형 ESG 경영',
   heroMessage: '우리의 참여가 조직의 변화가 되고, 더 나은 서비스로 이어집니다.',
-  heroBgUrl: '/src/assets/images/hero_abstract_navy_1794458263180.jpg'
+  heroBgUrl: heroBgImg
 };

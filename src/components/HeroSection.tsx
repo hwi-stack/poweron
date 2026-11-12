@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDown, ArrowDown, Sparkles } from 'lucide-react';
 import { SiteSettings } from '../types';
+import heroBgImg from '../assets/images/hero_abstract_navy_1794458263180.jpg';
 
 interface HeroSectionProps {
   settings: SiteSettings;
@@ -48,7 +49,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ settings }) => {
       {/* Background Media with Editorial Contrast Scrim */}
       <div className="absolute inset-0 z-0">
         <img
-          src={settings.heroBgUrl || '/src/assets/images/hero_abstract_navy_1794458263180.jpg'}
+          src={settings.heroBgUrl || heroBgImg}
           alt="수원시장애인종합복지관 직원위원회 성과 아카이브"
           referrerPolicy="no-referrer"
           className="w-full h-full object-cover opacity-35 transform scale-105 transition-transform duration-1000 ease-out"

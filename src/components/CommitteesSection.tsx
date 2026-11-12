@@ -14,6 +14,7 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import { CommitteeType } from '../types';
+import easyGuideKoreanImg from '../assets/images/easy_guide_korean_1794460532508.jpg';
 
 interface CommitteesSectionProps {
   onOpenEasyGuide: () => void;
@@ -472,7 +473,7 @@ export const CommitteesSection: React.FC<CommitteesSectionProps> = ({ onOpenEasy
               {/* Visual Showcase */}
               <div className="relative rounded-lg overflow-hidden border border-stone-200 shadow-md group">
                 <img
-                  src="/src/assets/images/easy_guide_cover_1794458263505.jpg"
+                  src={easyGuideKoreanImg}
                   alt="수원시장애인종합복지관 쉬운 이용안내서"
                   referrerPolicy="no-referrer"
                   className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-500"
