@@ -103,7 +103,7 @@ function MainApp() {
         <VoicesSection voices={voices} />
 
         {/* SECTION 09: NEXT CHAPTER & FOOTER */}
-        <NextChapterSection />
+        <NextChapterSection onOpenAdmin={() => setIsAdminCMSOpen(true)} />
       </main>
 
       {/* Accessible Interactive e-Book Modal */}

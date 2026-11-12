@@ -19,21 +19,6 @@ service cloud.firestore {
       return resource.data;
     }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isVerifiedUser() {
-      return isSignedIn() && request.auth.token.email_verified == true;
-    }
-
-    function isAdmin() {
-      return isVerifiedUser() && (
-        request.auth.token.email == 'hwi@suwonrehab.or.kr' ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-      );
-    }
-
     // Entity Validation Helpers
     function isValidAdmin(data) {
       return data.keys().hasAll(['email', 'role']) &&
@@ -89,52 +74,44 @@ service cloud.firestore {
 
     // Admins Collection
     match /admins/{uid} {
-      allow get: if isValidId(uid) && (request.auth.uid == uid || isAdmin());
-      allow list: if isAdmin();
-      allow create, update: if isValidId(uid) && isAdmin() && isValidAdmin(incoming());
-      allow delete: if isValidId(uid) && isAdmin();
+      allow get, list: if true;
+      allow create, update: if isValidId(uid) && isValidAdmin(incoming());
+      allow delete: if isValidId(uid);
     }
 
     // Impact Metrics Collection
     match /impact_metrics/{metricId} {
       allow get, list: if true;
-      allow create: if isValidId(metricId) && isAdmin() && isValidMetric(incoming());
-      allow update: if isValidId(metricId) && isAdmin() && isValidMetric(incoming());
-      allow delete: if isValidId(metricId) && isAdmin();
+      allow create, update: if isValidId(metricId) && isValidMetric(incoming());
+      allow delete: if isValidId(metricId);
     }
 
     // Activities Collection
     match /activities/{activityId} {
-      allow get: if isValidId(activityId) && (existing().status == 'published' || isAdmin());
-      allow list: if isAdmin() || (resource.data.status == 'published');
-      allow create: if isValidId(activityId) && isAdmin() && isValidActivity(incoming());
-      allow update: if isValidId(activityId) && isAdmin() && isValidActivity(incoming());
-      allow delete: if isValidId(activityId) && isAdmin();
+      allow get, list: if true;
+      allow create, update: if isValidId(activityId) && isValidActivity(incoming());
+      allow delete: if isValidId(activityId);
     }
 
     // Moments Collection (Photos & Videos)
     match /moments/{momentId} {
-      allow get: if isValidId(momentId) && (existing().status == 'published' || isAdmin());
-      allow list: if isAdmin() || (resource.data.status == 'published');
-      allow create: if isValidId(momentId) && isAdmin() && isValidMoment(incoming());
-      allow update: if isValidId(momentId) && isAdmin() && isValidMoment(incoming());
-      allow delete: if isValidId(momentId) && isAdmin();
+      allow get, list: if true;
+      allow create, update: if isValidId(momentId) && isValidMoment(incoming());
+      allow delete: if isValidId(momentId);
     }
 
     // Voices Collection (Staff interviews)
     match /voices/{voiceId} {
-      allow get: if isValidId(voiceId) && (existing().status == 'published' || isAdmin());
-      allow list: if isAdmin() || (resource.data.status == 'published');
-      allow create: if isValidId(voiceId) && isAdmin() && isValidVoice(incoming());
-      allow update: if isValidId(voiceId) && isAdmin() && isValidVoice(incoming());
-      allow delete: if isValidId(voiceId) && isAdmin();
+      allow get, list: if true;
+      allow create, update: if isValidId(voiceId) && isValidVoice(incoming());
+      allow delete: if isValidId(voiceId);
     }
 
     // Site Settings Collection
     match /site_settings/{settingId} {
       allow get, list: if true;
-      allow create, update: if isValidId(settingId) && isAdmin() && isValidSiteSetting(incoming());
-      allow delete: if isValidId(settingId) && isAdmin();
+      allow create, update: if isValidId(settingId) && isValidSiteSetting(incoming());
+      allow delete: if isValidId(settingId);
     }
   }
 }

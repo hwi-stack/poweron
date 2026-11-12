@@ -229,6 +229,30 @@ export const INITIAL_HIGHLIGHTS: HighlightStory[] = [
 
 export const INITIAL_MOMENTS: Moment[] = [
   {
+    id: 'video-1',
+    title: '2024~2026 직원위원회 3개년 활동 성과 하이라이트 영상',
+    year: 2026,
+    committee: 'growth',
+    description: '조직성장, ESG, 발달장애인지원 3대 분과가 함께 일군 혁신 과정과 3년간의 성과를 집약한 공식 다큐멘터리 영상입니다.',
+    mediaType: 'video',
+    url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    thumbnail: '/src/assets/images/smartwork_visual_1794458264575.jpg',
+    status: 'published',
+    order: 0
+  },
+  {
+    id: 'video-2',
+    title: '직원이 말하는 변화의 스위치 (스마트워크 & 상호존중 현장 인터뷰)',
+    year: 2026,
+    committee: 'esg',
+    description: '위원회 활동에 직접 참여한 직원들의 생생한 소감과 이용인과 함께 만든 상호존중 문화 인터뷰 영상입니다.',
+    mediaType: 'video',
+    url: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    thumbnail: '/src/assets/images/esg_campaign_visual_1794458264673.jpg',
+    status: 'published',
+    order: 1
+  },
+  {
     id: 'moment-1',
     title: '2024 직원위원회 킥오프 및 운영방향 정립 워크숍',
     year: 2024,
@@ -237,7 +261,7 @@ export const INITIAL_MOMENTS: Moment[] = [
     mediaType: 'photo',
     url: '/src/assets/images/smartwork_visual_1794458264575.jpg',
     status: 'published',
-    order: 1
+    order: 2
   },
   {
     id: 'moment-2',

@@ -22,22 +22,21 @@ import {
 } from '../services/contentService';
 import {
   X,
-  ShieldAlert,
-  ShieldCheck,
+  Lock,
+  Unlock,
   LogOut,
-  LogIn,
   Save,
   Plus,
   Trash2,
   Edit,
-  Database,
   CheckCircle,
   FileText,
   Image as ImageIcon,
   Activity as ActivityIcon,
   MessageSquare,
   Settings as SettingsIcon,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 
 interface AdminCMSProps {
@@ -59,10 +58,15 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   voices,
   siteSettings
 }) => {
-  const { user, isAdmin, isLoading, signInWithGoogle, logout, authError } = useAuth();
+  const { user, isAdmin, loginWithCredentials, logout, authError } = useAuth();
   const [activeTab, setActiveTab] = useState<'metrics' | 'activities' | 'moments' | 'voices' | 'settings'>('metrics');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Simple ID / Password input states
+  const [inputUsername, setInputUsername] = useState('');
+  const [inputPassword, setInputPassword] = useState('');
+  const [loginFeedback, setLoginFeedback] = useState<string | null>(null);
 
   // Editing forms
   const [editingMetric, setEditingMetric] = useState<ImpactMetric | null>(null);
@@ -76,6 +80,19 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   const showNotification = (msg: string) => {
     setActionMessage(msg);
     setTimeout(() => setActionMessage(null), 3500);
+  };
+
+  const handleLoginSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginFeedback(null);
+    const success = loginWithCredentials(inputUsername, inputPassword);
+    if (success) {
+      setInputUsername('');
+      setInputPassword('');
+      showNotification('관리자 인증이 완료되었습니다.');
+    } else {
+      setLoginFeedback('아이디 또는 비밀번호가 올바르지 않습니다.');
+    }
   };
 
   // 1. Metric save
@@ -224,7 +241,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
             </div>
             <div>
               <h3 className="text-base font-bold text-white font-display">
-                직원위원회 디지털 성과공유 관리자 시스템
+                직원위원회 디지털 성과공유 관리 시스템
               </h3>
               <p className="text-[11px] text-stone-300">
                 수원시장애인종합복지관 POWER ON
@@ -233,9 +250,12 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            {user ? (
+            {isAdmin && (
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-stone-300 hidden sm:inline">{user.email}</span>
+                <span className="text-[#C4A875] font-semibold flex items-center gap-1">
+                  <Unlock className="w-3.5 h-3.5" />
+                  <span>관리자 인증됨</span>
+                </span>
                 <button
                   onClick={logout}
                   className="px-2.5 py-1 rounded bg-white/10 hover:bg-white/20 text-stone-200 transition-colors flex items-center gap-1"
@@ -244,14 +264,6 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
                   <span>로그아웃</span>
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={signInWithGoogle}
-                className="px-3.5 py-1.5 rounded bg-[#C4A875] hover:bg-[#d8be8a] text-[#102138] text-xs font-semibold transition-colors flex items-center gap-1.5"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Google 관리자 로그인</span>
-              </button>
             )}
 
             <button
@@ -272,38 +284,65 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
           </div>
         )}
 
-        {/* Content Body: If NOT logged in or NOT admin */}
+        {/* Content Body: If NOT logged in, show simple ID/PW login */}
         {!isAdmin ? (
-          <div className="p-10 text-center my-auto space-y-6">
-            <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-[#C4A875]">
-              <ShieldAlert className="w-8 h-8" />
-            </div>
-            <div className="max-w-md mx-auto space-y-2">
-              <h4 className="text-xl font-bold font-display text-white">
-                관리자 권한이 필요합니다
-              </h4>
-              <p className="text-xs text-stone-300 leading-relaxed">
-                본 시스템은 수원시장애인종합복지관의 인증된 관리자만 접근하여 성과 지표와 기록을 수정할 수 있습니다.
-              </p>
-              {user && (
-                <div className="p-3 rounded bg-red-900/30 border border-red-500/30 text-xs text-red-200 mt-4">
-                  현재 로그인 계정({user.email})은 관리자 명단에 등록되어 있지 않습니다.
-                </div>
-              )}
+          <div className="p-8 md:p-14 text-center my-auto space-y-6 max-w-md mx-auto w-full">
+            <div className="w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-[#C4A875]">
+              <Lock className="w-6 h-6" />
             </div>
 
-            {!user ? (
-              <button
-                onClick={signInWithGoogle}
-                className="px-6 py-2.5 rounded bg-[#C4A875] text-[#102138] font-bold text-sm hover:bg-[#d8be8a] transition-colors"
-              >
-                Google 계정으로 로그인하기
-              </button>
-            ) : (
+            <div className="space-y-1">
+              <h4 className="text-xl font-bold font-display text-white">
+                관리자 로그인
+              </h4>
               <p className="text-xs text-stone-400">
-                문의: 복지관 전산/행정 담당자 (hwi@suwonrehab.or.kr)
+                콘텐츠 관리를 위해 아이디와 비밀번호를 입력해 주세요.
               </p>
-            )}
+            </div>
+
+            <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
+              <div>
+                <label className="text-xs text-stone-300 block mb-1">아이디</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="아이디 입력 (admin)"
+                  value={inputUsername}
+                  onChange={(e) => setInputUsername(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded bg-black/40 border border-white/20 text-sm text-white placeholder:text-stone-500 focus:outline-none focus:border-[#C4A875]"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-stone-300 block mb-1">비밀번호</label>
+                <input
+                  type="password"
+                  required
+                  placeholder="비밀번호 입력 (0926)"
+                  value={inputPassword}
+                  onChange={(e) => setInputPassword(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded bg-black/40 border border-white/20 text-sm text-white placeholder:text-stone-500 focus:outline-none focus:border-[#C4A875]"
+                />
+              </div>
+
+              {(loginFeedback || authError) && (
+                <div className="p-3 rounded bg-red-900/30 border border-red-500/30 text-xs text-red-300 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{loginFeedback || authError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded bg-[#C4A875] text-[#102138] font-bold text-sm hover:bg-[#d8be8a] transition-colors mt-2"
+              >
+                관리자 모드 접속
+              </button>
+            </form>
+
+            <p className="text-[11px] text-stone-500 pt-2">
+              수원시장애인종합복지관 직원위원회 성과관리 시스템
+            </p>
           </div>
         ) : (
           /* Authenticated Admin Management Tabs */
@@ -424,7 +463,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
                     ))}
                   </div>
 
-                  {/* Metric Edit Modal / Form */}
+                  {/* Metric Edit Form */}
                   {editingMetric && (
                     <div className="p-6 rounded-lg bg-[#182E47] border border-[#C4A875]/40 space-y-4">
                       <h5 className="text-base font-bold text-[#C4A875]">

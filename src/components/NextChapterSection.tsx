@@ -1,7 +1,11 @@
 import React from 'react';
-import { ArrowUp, Sparkles, Building2, HeartHandshake } from 'lucide-react';
+import { ArrowUp, Sparkles, Building2, Lock } from 'lucide-react';
 
-export const NextChapterSection: React.FC = () => {
+interface NextChapterSectionProps {
+  onOpenAdmin?: () => void;
+}
+
+export const NextChapterSection: React.FC<NextChapterSectionProps> = ({ onOpenAdmin }) => {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -61,9 +65,21 @@ export const NextChapterSection: React.FC = () => {
             <span>2024—2026 STAFF COMMITTEE ARCHIVE</span>
           </div>
 
-          <div className="text-center sm:text-right text-stone-500 text-[11px]">
-            <p>경기도 수원시 영통구 창룡대로 260 | 수원시장애인종합복지관</p>
-            <p className="mt-1">© 2024—2026 Suwon Community Welfare Center for Persons with Disabilities. All rights reserved.</p>
+          <div className="text-center sm:text-right text-stone-500 text-[11px] flex items-center justify-center sm:justify-end gap-2">
+            <div>
+              <p>경기도 수원시 영통구 창룡대로 260 | 수원시장애인종합복지관</p>
+              <p className="mt-1">© 2024—2026 Suwon Community Welfare Center for Persons with Disabilities. All rights reserved.</p>
+            </div>
+            {onOpenAdmin && (
+              <button
+                onClick={onOpenAdmin}
+                className="text-stone-600/40 hover:text-stone-400 p-1 transition-colors ml-1"
+                title="관리자"
+                aria-label="관리자 접속"
+              >
+                <Lock className="w-3 h-3" />
+              </button>
+            )}
           </div>
         </div>
       </div>

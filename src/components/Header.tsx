@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, UserCheck, Menu, X, ArrowUpRight } from 'lucide-react';
+import { Lock, Unlock, Menu, X, ArrowUpRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 interface HeaderProps {
@@ -7,7 +7,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ onOpenAdmin }) => {
-  const { user, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -71,7 +71,7 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdmin }) => {
             </div>
           </a>
 
-          {/* Zone 2: 4-7 Clean Nav Links */}
+          {/* Zone 2: Clean Nav Links */}
           <nav className="hidden lg:flex items-center gap-7 text-sm font-medium text-stone-200">
             {navLinks.map((link) => (
               <button
@@ -84,27 +84,23 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdmin }) => {
             ))}
           </nav>
 
-          {/* Zone 3: Primary Action / Admin Portal Trigger */}
+          {/* Zone 3: Subtle, Discreet Admin Trigger (잘 안보이게 조용히 배치) */}
           <div className="flex items-center gap-3 shrink-0">
+            {/* Very discreet, low-opacity lock icon that does not stand out to public visitors */}
             <button
               onClick={onOpenAdmin}
-              className={`px-3.5 py-1.5 text-xs font-medium rounded transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#C4A875] ${
+              className={`p-1.5 rounded transition-all duration-200 focus:outline-none focus-visible:ring-1 focus-visible:ring-[#C4A875] ${
                 isAdmin
-                  ? 'bg-[#C4A875] text-[#102138] font-semibold hover:bg-[#d6bc8b]'
-                  : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+                  ? 'text-[#C4A875]/80 hover:text-[#C4A875]'
+                  : 'text-stone-400/25 hover:text-stone-300 hover:bg-white/5'
               }`}
-              title={isAdmin ? '관리자 모드 활성화됨' : '관리자 로그인'}
+              title={isAdmin ? '관리자 모드 (활성화됨)' : '관리자'}
+              aria-label="관리자 메뉴"
             >
               {isAdmin ? (
-                <>
-                  <ShieldCheck className="w-3.5 h-3.5 text-[#102138]" />
-                  <span>관리자 모드</span>
-                </>
+                <Unlock className="w-3.5 h-3.5" />
               ) : (
-                <>
-                  <UserCheck className="w-3.5 h-3.5 text-stone-300" />
-                  <span>관리자</span>
-                </>
+                <Lock className="w-3.5 h-3.5" />
               )}
             </button>
 
@@ -141,18 +137,17 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdmin }) => {
               </button>
             ))}
           </nav>
-          <div className="pt-6 border-t border-white/10 flex flex-col gap-3">
-            <div className="text-xs text-stone-400">
-              수원시장애인종합복지관 2024~2026 직원위원회
-            </div>
+          <div className="pt-6 border-t border-white/10 flex items-center justify-between text-xs text-stone-500">
+            <span>수원시장애인종합복지관 2024~2026 직원위원회</span>
+            {/* Discreet admin link on mobile */}
             <button
               onClick={() => {
                 setMobileMenuOpen(false);
                 onOpenAdmin();
               }}
-              className="w-full py-2.5 px-4 bg-[#C4A875] text-[#102138] rounded text-sm font-semibold text-center"
+              className="text-stone-500/60 hover:text-stone-400 p-1"
             >
-              {isAdmin ? '관리자 대시보드 열기' : '관리자 로그인'}
+              <Lock className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
