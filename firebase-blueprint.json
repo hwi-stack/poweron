@@ -1,0 +1,298 @@
+{
+  "entities": {
+    "Admin": {
+      "title": "Admin",
+      "description": "Administrator profile with write permissions",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Admin email address",
+          "maxLength": 128
+        },
+        "role": {
+          "type": "string",
+          "description": "Role name",
+          "enum": ["admin", "superadmin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO timestamp of admin registration"
+        }
+      },
+      "required": ["email", "role"]
+    },
+    "ImpactMetric": {
+      "title": "ImpactMetric",
+      "description": "Key quantifiable metric displayed in the Impact section",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique metric identifier",
+          "maxLength": 64
+        },
+        "category": {
+          "type": "string",
+          "description": "Metric category",
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "description": "Short label for the metric",
+          "maxLength": 100
+        },
+        "value": {
+          "type": "string",
+          "description": "Metric value (e.g. 87.5, +80.3, -70, 56)",
+          "maxLength": 32
+        },
+        "unit": {
+          "type": "string",
+          "description": "Unit of measurement (e.g. %, 개, 회, 명)",
+          "maxLength": 16
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed explanation of what the metric represents",
+          "maxLength": 300
+        },
+        "order": {
+          "type": "number",
+          "description": "Display order"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp of last update"
+        }
+      },
+      "required": ["id", "title", "value", "unit", "description"]
+    },
+    "Activity": {
+      "title": "Activity",
+      "description": "Staff committee activity record",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique activity ID",
+          "maxLength": 64
+        },
+        "year": {
+          "type": "number",
+          "description": "Activity year (2024, 2025, 2026)"
+        },
+        "committee": {
+          "type": "string",
+          "description": "Committee code",
+          "enum": ["growth", "esg", "developmental"]
+        },
+        "title": {
+          "type": "string",
+          "description": "Activity title",
+          "maxLength": 200
+        },
+        "objective": {
+          "type": "string",
+          "description": "Purpose and objective",
+          "maxLength": 500
+        },
+        "content": {
+          "type": "string",
+          "description": "Main execution details",
+          "maxLength": 2000
+        },
+        "results": {
+          "type": "string",
+          "description": "Measurable or qualitative results",
+          "maxLength": 1000
+        },
+        "status": {
+          "type": "string",
+          "description": "Publication status",
+          "enum": ["draft", "published", "private"]
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp"
+        }
+      },
+      "required": ["id", "year", "committee", "title", "content", "status"]
+    },
+    "Moment": {
+      "title": "Moment",
+      "description": "Media archive item (photo or video)",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique moment ID",
+          "maxLength": 64
+        },
+        "title": {
+          "type": "string",
+          "description": "Activity title",
+          "maxLength": 200
+        },
+        "year": {
+          "type": "number",
+          "description": "Year of the moment"
+        },
+        "committee": {
+          "type": "string",
+          "description": "Committee classification",
+          "enum": ["growth", "esg", "developmental"]
+        },
+        "description": {
+          "type": "string",
+          "description": "Caption description",
+          "maxLength": 1000
+        },
+        "mediaType": {
+          "type": "string",
+          "description": "Media type",
+          "enum": ["photo", "video"]
+        },
+        "url": {
+          "type": "string",
+          "description": "Image or video URL",
+          "maxLength": 1000
+        },
+        "thumbnail": {
+          "type": "string",
+          "description": "Optional video thumbnail URL",
+          "maxLength": 1000
+        },
+        "status": {
+          "type": "string",
+          "description": "Publication state",
+          "enum": ["draft", "published", "private"]
+        },
+        "order": {
+          "type": "number",
+          "description": "Display order"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp"
+        }
+      },
+      "required": ["id", "title", "year", "committee", "mediaType", "url", "status"]
+    },
+    "Voice": {
+      "title": "Voice",
+      "description": "Interview or staff voice testimony",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique voice entry ID",
+          "maxLength": 64
+        },
+        "name": {
+          "type": "string",
+          "description": "Staff name or anonymous label",
+          "maxLength": 64
+        },
+        "committee": {
+          "type": "string",
+          "description": "Committee affiliation",
+          "enum": ["growth", "esg", "developmental"]
+        },
+        "title": {
+          "type": "string",
+          "description": "Interview heading",
+          "maxLength": 200
+        },
+        "content": {
+          "type": "string",
+          "description": "Interview content quote",
+          "maxLength": 2000
+        },
+        "profilePhotoUrl": {
+          "type": "string",
+          "description": "Optional profile photo URL",
+          "maxLength": 1000
+        },
+        "status": {
+          "type": "string",
+          "description": "Publish status",
+          "enum": ["draft", "published", "private"]
+        },
+        "order": {
+          "type": "number",
+          "description": "Display ordering"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp"
+        }
+      },
+      "required": ["id", "name", "committee", "title", "content", "status"]
+    },
+    "SiteSetting": {
+      "title": "SiteSetting",
+      "description": "Global website configuration and copy",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique setting key",
+          "maxLength": 64
+        },
+        "heroTitle": {
+          "type": "string",
+          "description": "Hero main title",
+          "maxLength": 100
+        },
+        "heroSubTitle": {
+          "type": "string",
+          "description": "Hero subtitle",
+          "maxLength": 200
+        },
+        "heroDescription": {
+          "type": "string",
+          "description": "Hero description",
+          "maxLength": 500
+        },
+        "heroBgUrl": {
+          "type": "string",
+          "description": "Hero background media URL",
+          "maxLength": 1000
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp"
+        }
+      },
+      "required": ["id"]
+    }
+  },
+  "firestore": {
+    "/admins/{uid}": {
+      "schema": { "$ref": "#/entities/Admin" },
+      "description": "Admin access list for CMS operations"
+    },
+    "/impact_metrics/{metricId}": {
+      "schema": { "$ref": "#/entities/ImpactMetric" },
+      "description": "Verified quantitative impact indicators"
+    },
+    "/activities/{activityId}": {
+      "schema": { "$ref": "#/entities/Activity" },
+      "description": "Annual committee activities and outcomes"
+    },
+    "/moments/{momentId}": {
+      "schema": { "$ref": "#/entities/Moment" },
+      "description": "Photos and videos in the Moments archive"
+    },
+    "/voices/{voiceId}": {
+      "schema": { "$ref": "#/entities/Voice" },
+      "description": "Staff interview cards and quotes"
+    },
+    "/site_settings/{settingId}": {
+      "schema": { "$ref": "#/entities/SiteSetting" },
+      "description": "Configurable site texts and banner URLs"
+    }
+  }
+}

@@ -1,0 +1,140 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Primitives and Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'hwi@suwonrehab.or.kr' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Entity Validation Helpers
+    function isValidAdmin(data) {
+      return data.keys().hasAll(['email', 'role']) &&
+             data.keys().hasOnly(['email', 'role', 'createdAt']) &&
+             data.email is string && data.email.size() <= 128 &&
+             data.role in ['admin', 'superadmin'];
+    }
+
+    function isValidMetric(data) {
+      return data.keys().hasAll(['id', 'title', 'value', 'unit', 'description']) &&
+             data.id is string && data.id.size() <= 64 &&
+             data.title is string && data.title.size() <= 100 &&
+             data.value is string && data.value.size() <= 32 &&
+             data.unit is string && data.unit.size() <= 16 &&
+             data.description is string && data.description.size() <= 300;
+    }
+
+    function isValidActivity(data) {
+      return data.keys().hasAll(['id', 'year', 'committee', 'title', 'content', 'status']) &&
+             data.id is string && data.id.size() <= 64 &&
+             data.year is number &&
+             data.committee in ['growth', 'esg', 'developmental'] &&
+             data.title is string && data.title.size() <= 200 &&
+             data.content is string && data.content.size() <= 3000 &&
+             data.status in ['draft', 'published', 'private'];
+    }
+
+    function isValidMoment(data) {
+      return data.keys().hasAll(['id', 'title', 'year', 'committee', 'mediaType', 'url', 'status']) &&
+             data.id is string && data.id.size() <= 64 &&
+             data.title is string && data.title.size() <= 200 &&
+             data.year is number &&
+             data.committee in ['growth', 'esg', 'developmental'] &&
+             data.mediaType in ['photo', 'video'] &&
+             data.url is string && data.url.size() <= 1000 &&
+             data.status in ['draft', 'published', 'private'];
+    }
+
+    function isValidVoice(data) {
+      return data.keys().hasAll(['id', 'name', 'committee', 'title', 'content', 'status']) &&
+             data.id is string && data.id.size() <= 64 &&
+             data.name is string && data.name.size() <= 64 &&
+             data.committee in ['growth', 'esg', 'developmental'] &&
+             data.title is string && data.title.size() <= 200 &&
+             data.content is string && data.content.size() <= 3000 &&
+             data.status in ['draft', 'published', 'private'];
+    }
+
+    function isValidSiteSetting(data) {
+      return data.keys().hasAll(['id']) &&
+             data.id is string && data.id.size() <= 64;
+    }
+
+    // Admins Collection
+    match /admins/{uid} {
+      allow get: if isValidId(uid) && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create, update: if isValidId(uid) && isAdmin() && isValidAdmin(incoming());
+      allow delete: if isValidId(uid) && isAdmin();
+    }
+
+    // Impact Metrics Collection
+    match /impact_metrics/{metricId} {
+      allow get, list: if true;
+      allow create: if isValidId(metricId) && isAdmin() && isValidMetric(incoming());
+      allow update: if isValidId(metricId) && isAdmin() && isValidMetric(incoming());
+      allow delete: if isValidId(metricId) && isAdmin();
+    }
+
+    // Activities Collection
+    match /activities/{activityId} {
+      allow get: if isValidId(activityId) && (existing().status == 'published' || isAdmin());
+      allow list: if isAdmin() || (resource.data.status == 'published');
+      allow create: if isValidId(activityId) && isAdmin() && isValidActivity(incoming());
+      allow update: if isValidId(activityId) && isAdmin() && isValidActivity(incoming());
+      allow delete: if isValidId(activityId) && isAdmin();
+    }
+
+    // Moments Collection (Photos & Videos)
+    match /moments/{momentId} {
+      allow get: if isValidId(momentId) && (existing().status == 'published' || isAdmin());
+      allow list: if isAdmin() || (resource.data.status == 'published');
+      allow create: if isValidId(momentId) && isAdmin() && isValidMoment(incoming());
+      allow update: if isValidId(momentId) && isAdmin() && isValidMoment(incoming());
+      allow delete: if isValidId(momentId) && isAdmin();
+    }
+
+    // Voices Collection (Staff interviews)
+    match /voices/{voiceId} {
+      allow get: if isValidId(voiceId) && (existing().status == 'published' || isAdmin());
+      allow list: if isAdmin() || (resource.data.status == 'published');
+      allow create: if isValidId(voiceId) && isAdmin() && isValidVoice(incoming());
+      allow update: if isValidId(voiceId) && isAdmin() && isValidVoice(incoming());
+      allow delete: if isValidId(voiceId) && isAdmin();
+    }
+
+    // Site Settings Collection
+    match /site_settings/{settingId} {
+      allow get, list: if true;
+      allow create, update: if isValidId(settingId) && isAdmin() && isValidSiteSetting(incoming());
+      allow delete: if isValidId(settingId) && isAdmin();
+    }
+  }
+}
