@@ -53,7 +53,7 @@ service cloud.firestore {
              data.year is number &&
              data.committee in ['growth', 'esg', 'developmental'] &&
              data.mediaType in ['photo', 'video'] &&
-             data.url is string && data.url.size() <= 1000 &&
+             data.url is string && data.url.size() <= 800000 &&
              data.status in ['draft', 'published', 'private'];
     }
 

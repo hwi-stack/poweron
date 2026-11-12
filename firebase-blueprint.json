@@ -156,13 +156,13 @@
         },
         "url": {
           "type": "string",
-          "description": "Image or video URL",
-          "maxLength": 1000
+          "description": "Image or video URL or base64 data URL",
+          "maxLength": 800000
         },
         "thumbnail": {
           "type": "string",
           "description": "Optional video thumbnail URL",
-          "maxLength": 1000
+          "maxLength": 800000
         },
         "status": {
           "type": "string",
@@ -259,7 +259,7 @@
         "heroBgUrl": {
           "type": "string",
           "description": "Hero background media URL",
-          "maxLength": 1000
+          "maxLength": 800000
         },
         "updatedAt": {
           "type": "string",

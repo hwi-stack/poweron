@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   ImpactMetric,
@@ -36,8 +36,13 @@ import {
   MessageSquare,
   Settings as SettingsIcon,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  Film,
+  Play,
+  Check
 } from 'lucide-react';
+import { compressImageFile, getYouTubeThumbnail, isVideoUrl, formatVideoEmbedUrl } from '../utils/imageHelper';
 
 interface AdminCMSProps {
   isOpen: boolean;
@@ -59,14 +64,22 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   siteSettings
 }) => {
   const { user, isAdmin, loginWithCredentials, logout, authError } = useAuth();
-  const [activeTab, setActiveTab] = useState<'metrics' | 'activities' | 'moments' | 'voices' | 'settings'>('metrics');
+  const [activeTab, setActiveTab] = useState<'metrics' | 'activities' | 'moments' | 'voices' | 'settings'>('moments');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Simple ID / Password input states
   const [inputUsername, setInputUsername] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const [loginFeedback, setLoginFeedback] = useState<string | null>(null);
+
+  // Moments filter in CMS
+  const [cmsMomentFilter, setCmsMomentFilter] = useState<'all' | 'photo' | 'video'>('all');
+
+  // File input refs
+  const photoFileInputRef = useRef<HTMLInputElement>(null);
+  const heroFileInputRef = useRef<HTMLInputElement>(null);
 
   // Editing forms
   const [editingMetric, setEditingMetric] = useState<ImpactMetric | null>(null);
@@ -92,6 +105,54 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
       showNotification('관리자 인증이 완료되었습니다.');
     } else {
       setLoginFeedback('아이디 또는 비밀번호가 올바르지 않습니다.');
+    }
+  };
+
+  // Image file upload handler (Compresses and converts to base64)
+  const handlePhotoFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일(JPG, PNG, WebP)만 업로드할 수 있습니다.');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const compressedDataUrl = await compressImageFile(file, 1200, 0.82);
+      setEditingMoment((prev) => ({
+        ...prev,
+        url: compressedDataUrl,
+        mediaType: 'photo'
+      }));
+      showNotification('사진이 업로드 및 최적화되었습니다.');
+    } catch (err: any) {
+      alert(`사진 업로드 실패: ${err.message}`);
+    } finally {
+      setIsUploadingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Hero background image file upload
+  const handleHeroBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const compressedDataUrl = await compressImageFile(file, 1600, 0.85);
+      setSettingsForm((prev) => ({
+        ...prev,
+        heroBgUrl: compressedDataUrl
+      }));
+      showNotification('히어로 배경 사진이 선택되었습니다. [설정 저장하기]를 눌러 완료해 주세요.');
+    } catch (err: any) {
+      alert(`배경 업로드 실패: ${err.message}`);
+    } finally {
+      setIsUploadingImage(false);
+      if (e.target) e.target.value = '';
     }
   };
 
@@ -140,9 +201,20 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
   // 3. Moment save
   const handleSaveMoment = async () => {
     if (!editingMoment?.title || !editingMoment?.url) {
-      alert('활동명과 미디어 URL을 입력해 주세요.');
+      alert('활동명과 사진/영상(파일 또는 링크)을 등록해 주세요.');
       return;
     }
+
+    // Auto-detect media type if user pasted a YouTube link
+    const isVideo = editingMoment.mediaType === 'video' || isVideoUrl(editingMoment.url);
+    const mediaType: 'photo' | 'video' = isVideo ? 'video' : 'photo';
+
+    let thumbnail = editingMoment.thumbnail || '';
+    if (mediaType === 'video' && !thumbnail) {
+      const ytThumb = getYouTubeThumbnail(editingMoment.url);
+      if (ytThumb) thumbnail = ytThumb;
+    }
+
     setIsSaving(true);
     try {
       const id = editingMoment.id || `moment-${Date.now()}`;
@@ -152,13 +224,13 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
         year: editingMoment.year || 2026,
         committee: (editingMoment.committee as CommitteeType) || 'growth',
         description: editingMoment.description || '',
-        mediaType: editingMoment.mediaType || 'photo',
+        mediaType,
         url: editingMoment.url,
-        thumbnail: editingMoment.thumbnail || '',
+        thumbnail,
         status: (editingMoment.status as PublishStatus) || 'published',
         order: editingMoment.order || 99
       });
-      showNotification('미디어 기록이 저장되었습니다.');
+      showNotification(`${mediaType === 'video' ? '영상' : '사진'} 기록이 저장되었습니다.`);
       setEditingMoment(null);
     } catch (e: any) {
       alert(`미디어 저장 실패: ${e.message}`);
@@ -350,15 +422,15 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
             {/* Sidebar Navigation */}
             <div className="w-full md:w-56 bg-[#182E47]/70 border-r border-white/10 p-3 flex md:flex-col gap-1 overflow-x-auto shrink-0">
               <button
-                onClick={() => setActiveTab('metrics')}
+                onClick={() => setActiveTab('moments')}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded text-xs font-semibold text-left transition-colors whitespace-nowrap ${
-                  activeTab === 'metrics'
+                  activeTab === 'moments'
                     ? 'bg-[#C4A875] text-[#102138]'
                     : 'text-stone-300 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <ActivityIcon className="w-4 h-4" />
-                <span>주요 성과 관리</span>
+                <ImageIcon className="w-4 h-4" />
+                <span>사진 · 영상 관리</span>
               </button>
 
               <button
@@ -374,15 +446,15 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
               </button>
 
               <button
-                onClick={() => setActiveTab('moments')}
+                onClick={() => setActiveTab('metrics')}
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded text-xs font-semibold text-left transition-colors whitespace-nowrap ${
-                  activeTab === 'moments'
+                  activeTab === 'metrics'
                     ? 'bg-[#C4A875] text-[#102138]'
                     : 'text-stone-300 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <ImageIcon className="w-4 h-4" />
-                <span>사진 · 영상 관리</span>
+                <ActivityIcon className="w-4 h-4" />
+                <span>주요 성과 수치</span>
               </button>
 
               <button
@@ -424,108 +496,409 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
 
             {/* Main Editor Panel */}
             <div className="flex-1 p-6 md:p-8 overflow-y-auto">
-              {/* TAB 1: METRICS */}
-              {activeTab === 'metrics' && (
+              {/* TAB 1: MOMENTS (사진 및 영상 관리) */}
+              {activeTab === 'moments' && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/10">
                     <div>
                       <h4 className="text-lg font-bold text-white font-display">
-                        핵심 성과 수치 관리
+                        사진 및 영상 아카이브 관리
                       </h4>
                       <p className="text-xs text-stone-400">
-                        수치를 수정하면 홈페이지 IMPACT 섹션 및 상세 화면에 실시간으로 반영됩니다.
+                        컴퓨터에서 사진을 직접 올리거나 유튜브 영상을 등록하여 아카이브에 반영합니다.
                       </p>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() =>
+                          setEditingMoment({
+                            year: 2026,
+                            committee: 'growth',
+                            mediaType: 'photo',
+                            status: 'published'
+                          })
+                        }
+                        className="px-3.5 py-1.5 rounded bg-[#527DA1] text-white text-xs font-bold hover:bg-[#436785] flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>📷 새 사진 올리기</span>
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          setEditingMoment({
+                            year: 2026,
+                            committee: 'growth',
+                            mediaType: 'video',
+                            status: 'published'
+                          })
+                        }
+                        className="px-3.5 py-1.5 rounded bg-[#C4A875] text-[#102138] text-xs font-bold hover:bg-[#d8be8a] flex items-center gap-1.5 shadow-sm"
+                      >
+                        <Film className="w-3.5 h-3.5" />
+                        <span>🎬 새 영상 등록</span>
+                      </button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {metrics.map((m) => (
-                      <div
-                        key={m.id}
-                        className="p-5 rounded-lg bg-white/5 border border-white/10 flex flex-col justify-between"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between text-xs text-[#C4A875] mb-2">
-                            <span>{m.category}</span>
-                            <span className="font-mono">{m.value}{m.unit}</span>
-                          </div>
-                          <h5 className="font-bold text-white text-base mb-1">{m.title}</h5>
-                          <p className="text-xs text-stone-300 line-clamp-2 mb-4">{m.description}</p>
-                        </div>
-                        <button
-                          onClick={() => setEditingMetric(m)}
-                          className="px-3 py-1.5 rounded bg-white/10 hover:bg-[#C4A875] hover:text-[#102138] text-xs font-semibold text-white transition-colors flex items-center justify-center gap-1 self-end"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                          <span>수정하기</span>
-                        </button>
-                      </div>
-                    ))}
+                  {/* Filter tabs inside CMS list */}
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="text-stone-400 mr-1">보기 필터:</span>
+                    <button
+                      onClick={() => setCmsMomentFilter('all')}
+                      className={`px-2.5 py-1 rounded transition-colors ${
+                        cmsMomentFilter === 'all'
+                          ? 'bg-white text-[#102138] font-bold'
+                          : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                      }`}
+                    >
+                      전체 ({moments.length})
+                    </button>
+                    <button
+                      onClick={() => setCmsMomentFilter('photo')}
+                      className={`px-2.5 py-1 rounded transition-colors ${
+                        cmsMomentFilter === 'photo'
+                          ? 'bg-[#527DA1] text-white font-bold'
+                          : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                      }`}
+                    >
+                      사진만 ({moments.filter((m) => m.mediaType === 'photo').length})
+                    </button>
+                    <button
+                      onClick={() => setCmsMomentFilter('video')}
+                      className={`px-2.5 py-1 rounded transition-colors ${
+                        cmsMomentFilter === 'video'
+                          ? 'bg-[#C4A875] text-[#102138] font-bold'
+                          : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                      }`}
+                    >
+                      영상만 ({moments.filter((m) => m.mediaType === 'video').length})
+                    </button>
                   </div>
 
-                  {/* Metric Edit Form */}
-                  {editingMetric && (
-                    <div className="p-6 rounded-lg bg-[#182E47] border border-[#C4A875]/40 space-y-4">
-                      <h5 className="text-base font-bold text-[#C4A875]">
-                        성과 지표 수정: {editingMetric.title}
-                      </h5>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                          <label className="text-xs text-stone-300 block mb-1">지표 명칭</label>
-                          <input
-                            type="text"
-                            value={editingMetric.title}
-                            onChange={(e) => setEditingMetric({ ...editingMetric, title: e.target.value })}
-                            className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="flex-1">
-                            <label className="text-xs text-stone-300 block mb-1">수치 (값)</label>
-                            <input
-                              type="text"
-                              value={editingMetric.value}
-                              onChange={(e) => setEditingMetric({ ...editingMetric, value: e.target.value })}
-                              className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
-                            />
-                          </div>
-                          <div className="w-24">
-                            <label className="text-xs text-stone-300 block mb-1">단위</label>
-                            <input
-                              type="text"
-                              value={editingMetric.unit}
-                              onChange={(e) => setEditingMetric({ ...editingMetric, unit: e.target.value })}
-                              className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
-                            />
-                          </div>
+                  {/* Add / Edit Form for Moment */}
+                  {editingMoment && (
+                    <div className="p-6 rounded-xl bg-[#182E47] border border-[#C4A875]/50 shadow-lg space-y-5">
+                      <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                        <h5 className="text-sm font-bold text-[#C4A875] flex items-center gap-1.5">
+                          {editingMoment.mediaType === 'video' ? <Film className="w-4 h-4" /> : <ImageIcon className="w-4 h-4" />}
+                          <span>
+                            {editingMoment.id ? '미디어 수정' : editingMoment.mediaType === 'video' ? '새 활동 영상 등록' : '새 활동 사진 올리기'}
+                          </span>
+                        </h5>
+
+                        {/* Switch Type Tabs in Form */}
+                        <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg">
+                          <button
+                            type="button"
+                            onClick={() => setEditingMoment({ ...editingMoment, mediaType: 'photo' })}
+                            className={`px-3 py-1 rounded text-xs font-semibold transition-colors flex items-center gap-1 ${
+                              editingMoment.mediaType === 'photo'
+                                ? 'bg-[#527DA1] text-white shadow-xs'
+                                : 'text-stone-400 hover:text-white'
+                            }`}
+                          >
+                            <ImageIcon className="w-3.5 h-3.5" />
+                            <span>📷 사진 (이미지)</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingMoment({ ...editingMoment, mediaType: 'video' })}
+                            className={`px-3 py-1 rounded text-xs font-semibold transition-colors flex items-center gap-1 ${
+                              editingMoment.mediaType === 'video'
+                                ? 'bg-[#C4A875] text-[#102138] shadow-xs'
+                                : 'text-stone-400 hover:text-white'
+                            }`}
+                          >
+                            <Film className="w-3.5 h-3.5" />
+                            <span>🎬 영상 (동영상)</span>
+                          </button>
                         </div>
                       </div>
+
+                      {/* Basic Fields */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-xs text-stone-300 block mb-1">연도</label>
+                          <select
+                            value={editingMoment.year || 2026}
+                            onChange={(e) => setEditingMoment({ ...editingMoment, year: Number(e.target.value) })}
+                            className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
+                          >
+                            <option value={2024}>2024년</option>
+                            <option value={2025}>2025년</option>
+                            <option value={2026}>2026년</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-stone-300 block mb-1">소속 위원회</label>
+                          <select
+                            value={editingMoment.committee || 'growth'}
+                            onChange={(e) => setEditingMoment({ ...editingMoment, committee: e.target.value as CommitteeType })}
+                            className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
+                          >
+                            <option value="growth">조직성장위원회</option>
+                            <option value="esg">ESG위원회</option>
+                            <option value="developmental">발달장애인지원위원회</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="text-xs text-stone-300 block mb-1">게시 상태</label>
+                          <select
+                            value={editingMoment.status || 'published'}
+                            onChange={(e) => setEditingMoment({ ...editingMoment, status: e.target.value as PublishStatus })}
+                            className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
+                          >
+                            <option value="published">게시 (공개)</option>
+                            <option value="draft">임시저장</option>
+                            <option value="private">비공개</option>
+                          </select>
+                        </div>
+                      </div>
+
                       <div>
-                        <label className="text-xs text-stone-300 block mb-1">설명 문구</label>
-                        <textarea
-                          rows={2}
-                          value={editingMetric.description}
-                          onChange={(e) => setEditingMetric({ ...editingMetric, description: e.target.value })}
-                          className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
+                        <label className="text-xs text-stone-300 block mb-1">활동명 (제목)</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="예: 2026 스마트워크 업무 개선 시연회"
+                          value={editingMoment.title || ''}
+                          onChange={(e) => setEditingMoment({ ...editingMoment, title: e.target.value })}
+                          className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white placeholder:text-stone-500"
                         />
                       </div>
-                      <div className="flex justify-end gap-2 pt-2">
+
+                      {/* CONDITIONAL MEDIA UPLOAD AREA */}
+                      {editingMoment.mediaType === 'photo' ? (
+                        /* PHOTO UPLOAD BOX */
+                        <div className="p-4 rounded-lg bg-black/30 border border-white/15 space-y-3">
+                          <label className="text-xs font-semibold text-[#C4A875] flex items-center gap-1.5">
+                            <Upload className="w-3.5 h-3.5" />
+                            <span>사진 파일 등록 (직접 업로드 또는 URL 입력)</span>
+                          </label>
+
+                          <div className="flex flex-col sm:flex-row items-center gap-3">
+                            <input
+                              type="file"
+                              ref={photoFileInputRef}
+                              accept="image/*"
+                              onChange={handlePhotoFileUpload}
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => photoFileInputRef.current?.click()}
+                              disabled={isUploadingImage}
+                              className="w-full sm:w-auto px-4 py-2.5 rounded bg-[#527DA1] hover:bg-[#436785] text-white text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                            >
+                              <Upload className="w-4 h-4" />
+                              <span>{isUploadingImage ? '사진 압축 처리 중...' : '내 컴퓨터에서 사진 선택하기'}</span>
+                            </button>
+                            <span className="text-xs text-stone-400">
+                              (JPG, PNG, WebP 지원 · 자동 리사이징 및 최적화)
+                            </span>
+                          </div>
+
+                          <div className="pt-2">
+                            <span className="text-[11px] text-stone-400 block mb-1">또는 이미지 웹 주소(URL) 직접 입력:</span>
+                            <input
+                              type="text"
+                              placeholder="https://... 또는 /src/assets/images/..."
+                              value={editingMoment.url || ''}
+                              onChange={(e) => setEditingMoment({ ...editingMoment, url: e.target.value })}
+                              className="w-full px-3 py-1.5 rounded bg-black/50 border border-white/10 text-xs text-white placeholder:text-stone-500"
+                            />
+                          </div>
+
+                          {/* Live Image Preview */}
+                          {editingMoment.url && (
+                            <div className="pt-3 border-t border-white/10 flex items-center gap-4">
+                              <div className="w-24 h-16 rounded overflow-hidden bg-black border border-white/20 shrink-0">
+                                <img
+                                  src={editingMoment.url}
+                                  alt="미리보기"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div className="text-xs text-stone-300">
+                                <span className="font-semibold text-emerald-400 flex items-center gap-1">
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>사진 등록 완료</span>
+                                </span>
+                                <span className="text-[11px] text-stone-400 block mt-0.5">
+                                  저장 시 깨짐 없이 갤러리에 고화질로 정상 표시됩니다.
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        /* VIDEO LINK BOX */
+                        <div className="p-4 rounded-lg bg-black/30 border border-[#C4A875]/30 space-y-3">
+                          <label className="text-xs font-semibold text-[#C4A875] flex items-center gap-1.5">
+                            <Film className="w-3.5 h-3.5" />
+                            <span>동영상 링크 등록 (유튜브 주소 등)</span>
+                          </label>
+
+                          <div>
+                            <input
+                              type="text"
+                              required
+                              placeholder="유튜브 링크 입력 (예: https://www.youtube.com/watch?v=... 또는 https://youtu.be/...)"
+                              value={editingMoment.url || ''}
+                              onChange={(e) => {
+                                const url = e.target.value;
+                                const autoThumb = getYouTubeThumbnail(url);
+                                setEditingMoment({
+                                  ...editingMoment,
+                                  url,
+                                  thumbnail: autoThumb || editingMoment.thumbnail || ''
+                                });
+                              }}
+                              className="w-full px-3 py-2 rounded bg-black/50 border border-white/20 text-xs text-white placeholder:text-stone-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[11px] text-stone-300 block mb-1">
+                              동영상 썸네일 이미지 URL (유튜브 링크 입력 시 자동 추출됨):
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="썸네일 이미지 URL (비워둘 시 자동 적용)"
+                              value={editingMoment.thumbnail || ''}
+                              onChange={(e) => setEditingMoment({ ...editingMoment, thumbnail: e.target.value })}
+                              className="w-full px-3 py-1.5 rounded bg-black/50 border border-white/10 text-xs text-white placeholder:text-stone-500"
+                            />
+                          </div>
+
+                          {/* Live Video Preview */}
+                          {editingMoment.url && (
+                            <div className="pt-3 border-t border-white/10">
+                              <span className="text-xs text-stone-300 block mb-2">동영상 미리보기:</span>
+                              <div className="w-full max-w-sm aspect-video rounded overflow-hidden bg-black border border-white/20">
+                                {editingMoment.url.includes('youtube.com') || editingMoment.url.includes('youtu.be') ? (
+                                  <iframe
+                                    src={formatVideoEmbedUrl(editingMoment.url)}
+                                    className="w-full h-full"
+                                    title="영상 미리보기"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-xs text-stone-400">
+                                    <Film className="w-6 h-6 mr-1" />
+                                    <span>동영상 링크 설정됨</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div>
+                        <label className="text-xs text-stone-300 block mb-1">설명 문구 (캡션)</label>
+                        <textarea
+                          rows={2}
+                          placeholder="활동 사진 또는 영상에 대한 간략한 설명을 작성해 주세요."
+                          value={editingMoment.description || ''}
+                          onChange={(e) => setEditingMoment({ ...editingMoment, description: e.target.value })}
+                          className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white placeholder:text-stone-500"
+                        />
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
                         <button
-                          onClick={() => setEditingMetric(null)}
-                          className="px-3 py-1.5 rounded bg-white/10 text-xs text-stone-300 hover:text-white"
+                          type="button"
+                          onClick={() => setEditingMoment(null)}
+                          className="px-3.5 py-1.5 rounded bg-white/10 text-xs text-stone-300 hover:text-white"
                         >
                           취소
                         </button>
                         <button
-                          onClick={() => handleSaveMetric(editingMetric)}
+                          type="button"
+                          onClick={handleSaveMoment}
                           disabled={isSaving}
-                          className="px-4 py-1.5 rounded bg-[#C4A875] text-[#102138] text-xs font-bold hover:bg-[#d8be8a]"
+                          className="px-5 py-2 rounded bg-[#C4A875] text-[#102138] text-xs font-bold hover:bg-[#d8be8a] flex items-center gap-1.5"
                         >
-                          저장 완료
+                          <Save className="w-3.5 h-3.5" />
+                          <span>미디어 저장 완료</span>
                         </button>
                       </div>
                     </div>
                   )}
+
+                  {/* Media List */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {moments
+                      .filter((m) => {
+                        const actualType = isVideoUrl(m.url) || m.mediaType === 'video' ? 'video' : 'photo';
+                        return cmsMomentFilter === 'all' || actualType === cmsMomentFilter;
+                      })
+                      .map((m) => {
+                        const isVideo = isVideoUrl(m.url) || m.mediaType === 'video';
+                        const thumb = m.thumbnail || (isVideo ? getYouTubeThumbnail(m.url) : m.url) || m.url;
+
+                        return (
+                          <div
+                            key={m.id}
+                            className={`p-4 rounded-lg bg-white/5 border flex items-start gap-3.5 transition-all ${
+                              isVideo ? 'border-[#C4A875]/30' : 'border-white/10'
+                            }`}
+                          >
+                            {/* Visual Thumbnail */}
+                            <div className="w-20 h-14 rounded overflow-hidden bg-black shrink-0 relative border border-white/10">
+                              <img
+                                src={thumb}
+                                alt={m.title}
+                                referrerPolicy="no-referrer"
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute top-1 left-1">
+                                {isVideo ? (
+                                  <span className="px-1 py-0.2 rounded bg-[#C4A875] text-[#102138] text-[9px] font-bold">
+                                    영상
+                                  </span>
+                                ) : (
+                                  <span className="px-1 py-0.2 rounded bg-black/70 text-white text-[9px]">
+                                    사진
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex-1 space-y-1 min-w-0">
+                              <div className="flex items-center gap-2 text-xs">
+                                <span className="font-mono text-[#C4A875]">{m.year}년</span>
+                                <span className="text-stone-300">·</span>
+                                <span className="text-stone-300 font-semibold truncate">{m.committee}</span>
+                              </div>
+                              <h5 className="font-bold text-white text-sm line-clamp-1">{m.title}</h5>
+                              <p className="text-xs text-stone-400 line-clamp-1">{m.description}</p>
+                            </div>
+
+                            <div className="flex items-center gap-1.5 shrink-0 self-center">
+                              <button
+                                onClick={() => setEditingMoment(m)}
+                                className="p-1.5 rounded bg-white/10 hover:bg-white/20 text-stone-200"
+                                title="수정"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  if (confirm('이 기록을 삭제하시겠습니까?')) deleteMoment(m.id);
+                                }}
+                                className="p-1.5 rounded bg-red-900/30 hover:bg-red-800 text-red-300"
+                                title="삭제"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               )}
 
@@ -686,168 +1059,108 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
                 </div>
               )}
 
-              {/* TAB 3: MOMENTS */}
-              {activeTab === 'moments' && (
+              {/* TAB 3: METRICS */}
+              {activeTab === 'metrics' && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between pb-4 border-b border-white/10">
                     <div>
                       <h4 className="text-lg font-bold text-white font-display">
-                        사진 및 영상 아카이브 관리
+                        핵심 성과 수치 관리
                       </h4>
                       <p className="text-xs text-stone-400">
-                        활동 사진 및 외부 영상 링크(유튜브 등)를 등록하고 상태를 지정합니다.
+                        수치를 수정하면 홈페이지 IMPACT 섹션 및 상세 화면에 실시간으로 반영됩니다.
                       </p>
                     </div>
-                    <button
-                      onClick={() => setEditingMoment({ year: 2026, committee: 'growth', mediaType: 'photo', status: 'published' })}
-                      className="px-3 py-1.5 rounded bg-[#C4A875] text-[#102138] text-xs font-bold hover:bg-[#d8be8a] flex items-center gap-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>미디어 추가</span>
-                    </button>
                   </div>
 
-                  {/* Form */}
-                  {editingMoment && (
-                    <div className="p-6 rounded-lg bg-[#182E47] border border-[#C4A875]/40 space-y-4">
-                      <h5 className="text-sm font-bold text-[#C4A875]">
-                        {editingMoment.id ? '미디어 수정' : '새 미디어 등록'}
-                      </h5>
-                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {metrics.map((m) => (
+                      <div
+                        key={m.id}
+                        className="p-5 rounded-lg bg-white/5 border border-white/10 flex flex-col justify-between"
+                      >
                         <div>
-                          <label className="text-xs text-stone-300 block mb-1">연도</label>
-                          <select
-                            value={editingMoment.year || 2026}
-                            onChange={(e) => setEditingMoment({ ...editingMoment, year: Number(e.target.value) })}
-                            className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
-                          >
-                            <option value={2024}>2024년</option>
-                            <option value={2025}>2025년</option>
-                            <option value={2026}>2026년</option>
-                          </select>
+                          <div className="flex items-center justify-between text-xs text-[#C4A875] mb-2">
+                            <span>{m.category}</span>
+                            <span className="font-mono">{m.value}{m.unit}</span>
+                          </div>
+                          <h5 className="font-bold text-white text-base mb-1">{m.title}</h5>
+                          <p className="text-xs text-stone-300 line-clamp-2 mb-4">{m.description}</p>
                         </div>
-                        <div>
-                          <label className="text-xs text-stone-300 block mb-1">위원회</label>
-                          <select
-                            value={editingMoment.committee || 'growth'}
-                            onChange={(e) => setEditingMoment({ ...editingMoment, committee: e.target.value as CommitteeType })}
-                            className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
-                          >
-                            <option value="growth">조직성장위원회</option>
-                            <option value="esg">ESG위원회</option>
-                            <option value="developmental">발달장애인지원위원회</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs text-stone-300 block mb-1">유형</label>
-                          <select
-                            value={editingMoment.mediaType || 'photo'}
-                            onChange={(e) => setEditingMoment({ ...editingMoment, mediaType: e.target.value as 'photo' | 'video' })}
-                            className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
-                          >
-                            <option value="photo">사진 (이미지)</option>
-                            <option value="video">영상 (링크/호스팅)</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs text-stone-300 block mb-1">게시 상태</label>
-                          <select
-                            value={editingMoment.status || 'published'}
-                            onChange={(e) => setEditingMoment({ ...editingMoment, status: e.target.value as PublishStatus })}
-                            className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
-                          >
-                            <option value="published">게시 (공개)</option>
-                            <option value="draft">임시저장</option>
-                            <option value="private">비공개</option>
-                          </select>
-                        </div>
+                        <button
+                          onClick={() => setEditingMetric(m)}
+                          className="px-3 py-1.5 rounded bg-white/10 hover:bg-[#C4A875] hover:text-[#102138] text-xs font-semibold text-white transition-colors flex items-center justify-center gap-1 self-end"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                          <span>수정하기</span>
+                        </button>
                       </div>
+                    ))}
+                  </div>
 
-                      <div>
-                        <label className="text-xs text-stone-300 block mb-1">활동명</label>
-                        <input
-                          type="text"
-                          value={editingMoment.title || ''}
-                          onChange={(e) => setEditingMoment({ ...editingMoment, title: e.target.value })}
-                          className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs text-stone-300 block mb-1">미디어 파일 URL / 이미지 경로</label>
-                        <input
-                          type="text"
-                          placeholder="https://... 또는 /src/assets/images/..."
-                          value={editingMoment.url || ''}
-                          onChange={(e) => setEditingMoment({ ...editingMoment, url: e.target.value })}
-                          className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
-                        />
+                  {/* Metric Edit Form */}
+                  {editingMetric && (
+                    <div className="p-6 rounded-lg bg-[#182E47] border border-[#C4A875]/40 space-y-4">
+                      <h5 className="text-base font-bold text-[#C4A875]">
+                        성과 지표 수정: {editingMetric.title}
+                      </h5>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-xs text-stone-300 block mb-1">지표 명칭</label>
+                          <input
+                            type="text"
+                            value={editingMetric.title}
+                            onChange={(e) => setEditingMetric({ ...editingMetric, title: e.target.value })}
+                            className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="flex-1">
+                            <label className="text-xs text-stone-300 block mb-1">수치 (값)</label>
+                            <input
+                              type="text"
+                              value={editingMetric.value}
+                              onChange={(e) => setEditingMetric({ ...editingMetric, value: e.target.value })}
+                              className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
+                            />
+                          </div>
+                          <div className="w-24">
+                            <label className="text-xs text-stone-300 block mb-1">단위</label>
+                            <input
+                              type="text"
+                              value={editingMetric.unit}
+                              onChange={(e) => setEditingMetric({ ...editingMetric, unit: e.target.value })}
+                              className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
+                            />
+                          </div>
+                        </div>
                       </div>
                       <div>
                         <label className="text-xs text-stone-300 block mb-1">설명 문구</label>
                         <textarea
                           rows={2}
-                          value={editingMoment.description || ''}
-                          onChange={(e) => setEditingMoment({ ...editingMoment, description: e.target.value })}
+                          value={editingMetric.description}
+                          onChange={(e) => setEditingMetric({ ...editingMetric, description: e.target.value })}
                           className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
                         />
                       </div>
-
                       <div className="flex justify-end gap-2 pt-2">
                         <button
-                          onClick={() => setEditingMoment(null)}
+                          onClick={() => setEditingMetric(null)}
                           className="px-3 py-1.5 rounded bg-white/10 text-xs text-stone-300 hover:text-white"
                         >
                           취소
                         </button>
                         <button
-                          onClick={handleSaveMoment}
+                          onClick={() => handleSaveMetric(editingMetric)}
                           disabled={isSaving}
                           className="px-4 py-1.5 rounded bg-[#C4A875] text-[#102138] text-xs font-bold hover:bg-[#d8be8a]"
                         >
-                          저장
+                          저장 완료
                         </button>
                       </div>
                     </div>
                   )}
-
-                  {/* List */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {moments.map((m) => (
-                      <div
-                        key={m.id}
-                        className="p-4 rounded-lg bg-white/5 border border-white/10 flex items-start justify-between gap-3"
-                      >
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-xs">
-                            <span className="font-mono text-[#C4A875]">{m.year}년</span>
-                            <span className="text-stone-300">·</span>
-                            <span className="text-stone-300 font-semibold">{m.committee}</span>
-                            <span className="text-[10px] uppercase font-mono bg-white/10 px-1 rounded">{m.mediaType}</span>
-                          </div>
-                          <h5 className="font-bold text-white text-sm line-clamp-1">{m.title}</h5>
-                          <p className="text-xs text-stone-400 line-clamp-2">{m.description}</p>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            onClick={() => setEditingMoment(m)}
-                            className="p-1.5 rounded bg-white/10 hover:bg-white/20 text-stone-200"
-                            title="수정"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm('삭제하시겠습니까?')) deleteMoment(m.id);
-                            }}
-                            className="p-1.5 rounded bg-red-900/30 hover:bg-red-800 text-red-300"
-                            title="삭제"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
 
@@ -1003,7 +1316,7 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
                       웹사이트 기본 카피 및 미디어 설정
                     </h4>
                     <p className="text-xs text-stone-400">
-                      홈페이지 최상단 HERO 영역의 헤드라인, 배경 이미지 경로 등을 관리합니다.
+                      홈페이지 최상단 HERO 영역의 헤드라인, 배경 이미지 파일 등을 관리합니다.
                     </p>
                   </div>
 
@@ -1044,14 +1357,58 @@ export const AdminCMS: React.FC<AdminCMSProps> = ({
                         className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
                       />
                     </div>
-                    <div>
-                      <label className="text-xs text-stone-300 block mb-1">히어로 배경 이미지 / 영상 URL</label>
-                      <input
-                        type="text"
-                        value={settingsForm.heroBgUrl || ''}
-                        onChange={(e) => setSettingsForm({ ...settingsForm, heroBgUrl: e.target.value })}
-                        className="w-full px-3 py-2 rounded bg-black/40 border border-white/20 text-xs text-white"
-                      />
+
+                    {/* HERO BACKGROUND UPLOAD */}
+                    <div className="p-4 rounded-lg bg-black/30 border border-white/15 space-y-3">
+                      <label className="text-xs font-semibold text-[#C4A875] flex items-center gap-1.5">
+                        <Upload className="w-3.5 h-3.5" />
+                        <span>히어로 배경 사진 등록 (직접 업로드 또는 URL)</span>
+                      </label>
+
+                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                        <input
+                          type="file"
+                          ref={heroFileInputRef}
+                          accept="image/*"
+                          onChange={handleHeroBgUpload}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => heroFileInputRef.current?.click()}
+                          disabled={isUploadingImage}
+                          className="w-full sm:w-auto px-4 py-2 rounded bg-[#C4A875] text-[#102138] text-xs font-bold hover:bg-[#d8be8a] flex items-center justify-center gap-2"
+                        >
+                          <Upload className="w-4 h-4" />
+                          <span>{isUploadingImage ? '배경 사진 처리 중...' : '컴퓨터에서 배경 사진 선택'}</span>
+                        </button>
+                      </div>
+
+                      <div>
+                        <span className="text-[11px] text-stone-400 block mb-1">또는 이미지 URL 직접 입력:</span>
+                        <input
+                          type="text"
+                          value={settingsForm.heroBgUrl || ''}
+                          onChange={(e) => setSettingsForm({ ...settingsForm, heroBgUrl: e.target.value })}
+                          className="w-full px-3 py-1.5 rounded bg-black/50 border border-white/10 text-xs text-white"
+                        />
+                      </div>
+
+                      {settingsForm.heroBgUrl && (
+                        <div className="pt-2 flex items-center gap-3">
+                          <div className="w-24 h-14 rounded overflow-hidden bg-black border border-white/20 shrink-0">
+                            <img
+                              src={settingsForm.heroBgUrl}
+                              alt="배경 미리보기"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <span className="text-xs text-emerald-400 font-semibold flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" />
+                            <span>배경 이미지 적용 대기 중</span>
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     <div className="pt-4 border-t border-white/10 flex justify-end">
